@@ -430,8 +430,7 @@ python3 test_database.py
 
 - 🐛 **گزارش باگ**: [Issues](https://github.com/rexagamer/gym-reminder-bot/issues)
 - 💡 **درخواست ویژگی**: [Feature Requests](https://github.com/rexagamer/gym-reminder-bot/issues/new)
-- 📧 **ایمیل**: rezagamergg@gmail.com
-- 💬 **تلگرام**: [@rexagamer](https://t.me/rexagamer) (در صورت وجود)
+- 💬 **بحث و گفتگو**: [Discussions](https://github.com/rexagamer/gym-reminder-bot/discussions)
 
 ## 🌟 حمایت از پروژه
 
