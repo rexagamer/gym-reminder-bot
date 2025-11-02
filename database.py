@@ -35,7 +35,7 @@ class Database:
             created_at TEXT
         )
         """)
-        # exercises: add reps and gif columns
+        # exercises
         cur.execute("""
         CREATE TABLE IF NOT EXISTS exercises (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,6 +59,13 @@ class Database:
             closed INTEGER DEFAULT 0
         )
         """)
+        # user settings
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id INTEGER PRIMARY KEY,
+            rest_seconds INTEGER DEFAULT 60
+        )
+        """)
         self.conn.commit()
 
     def add_user(self, user_id: int, username: Optional[str]):
@@ -72,6 +79,13 @@ class Database:
                     (user_id, day_name, datetime.utcnow().isoformat()))
         self.conn.commit()
         return cur.lastrowid
+
+    def get_program_by_user_day(self, user_id: int, day_name: str) -> Optional[Dict]:
+        cur = self.conn.cursor()
+        cur.execute("SELECT id, day_name FROM programs WHERE user_id = ? AND day_name = ?",
+                    (user_id, day_name))
+        row = cur.fetchone()
+        return dict(row) if row else None
 
     def get_user_programs(self, user_id: int) -> List[Dict]:
         cur = self.conn.cursor()
@@ -92,6 +106,20 @@ class Database:
         """, (program_id, name, reps, sets, weight, gif, position))
         self.conn.commit()
         return cur.lastrowid
+
+    def update_exercise(self, exercise_id: int, name: str, reps: int, sets: int, weight: float = 0.0, gif: Optional[str] = None):
+        cur = self.conn.cursor()
+        cur.execute("""
+            UPDATE exercises SET name = ?, reps = ?, sets = ?, weight = ?, gif = ? WHERE id = ?
+        """, (name, reps, sets, weight, gif, exercise_id))
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    def delete_exercise_by_id(self, exercise_id: int) -> bool:
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM exercises WHERE id = ?", (exercise_id,))
+        self.conn.commit()
+        return cur.rowcount > 0
 
     def delete_last_exercise(self, program_id: int) -> bool:
         cur = self.conn.cursor()
@@ -124,4 +152,23 @@ class Database:
     def close_session(self, session_id: int):
         cur = self.conn.cursor()
         cur.execute("UPDATE sessions SET closed = 1 WHERE id = ?", (session_id,))
+        self.conn.commit()
+
+    def get_rest_seconds(self, user_id: int) -> int:
+        cur = self.conn.cursor()
+        cur.execute("SELECT rest_seconds FROM user_settings WHERE user_id = ?", (user_id,))
+        row = cur.fetchone()
+        if row:
+            return int(row['rest_seconds'])
+        cur.execute("INSERT OR IGNORE INTO user_settings (user_id, rest_seconds) VALUES (?, ?)", (user_id, 60))
+        self.conn.commit()
+        return 60
+
+    def set_rest_seconds(self, user_id: int, seconds: int):
+        cur = self.conn.cursor()
+        # SQLite upsert
+        cur.execute("""
+            INSERT INTO user_settings (user_id, rest_seconds) VALUES (?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET rest_seconds=excluded.rest_seconds
+        """, (user_id, seconds))
         self.conn.commit()
